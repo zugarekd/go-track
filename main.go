@@ -13,6 +13,11 @@ import (
 )
 
 func main() {
+	if err := handlers.InitDB(); err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
+	defer handlers.Stop()
+
 	port := "8088"
 
 	mux := http.NewServeMux()
