@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	if err := handlers.InitDB(); err != nil {
+	if err := handlers.Start(); err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 	defer handlers.Stop()
