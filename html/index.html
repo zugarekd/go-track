@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Gauge Test</title>
+    <script src="gauge.min.js"></script>
+</head>
+<body>
+<!--
+<button onclick="animateGauges()">Animate</button>
+<button onclick="stopGaugesAnimation()">Stop animation</button>
+<input type="text" id="gauge-size" value="400">
+<button onclick="resize()">Resize</button>
+<input type="text" id="gauge-text" value="ERROR">
+<button onclick="setText()">Set value text</button>
+<button onclick="document.location.reload()">Reset</button>
+-->
+<hr>
+
+<canvas id="radon" width="600" height="600"></canvas>
+
+<canvas id="radiation" width="600" height="600"></canvas>
+
+<script>
+  const queryUrl = 'http://192.168.86.45/gaugeData';
+
+  const radonElement = document.getElementById("radon");
+
+  const radonGauge = new RadialGauge({
+    renderTo: radonElement, // Use the canvas element as the target
+    width: 600,
+    height: 600,
+    units: "pCi/L",
+    minValue: 0,
+    maxValue: 5,
+    majorTicks: [0,.5,1,1.5,2,2.5,3,3.5,4,4.5,5],
+    highlights: [
+      { from: 0, to: 2, color: "rgba(0,255,0,1)" },
+      { from: 2, to: 4, color: "rgba(241,241,0,1)" },
+      { from: 4, to: 5, color: "rgba(253,0,0,1)" }
+    ],
+    startAngle: 30,
+    ticksAngle: 300,
+    minorTicks: 25,
+    colorPlate: "#fff",
+    borderShadowWidth: 0,
+    borders: false,
+    needleType: "arrow",
+    needleWidth: 2,
+    needleCircleSize: 7,
+    needleCircleOuter: true,
+    needleCircleInner: false,
+    animationDuration: 1500,
+    animationRule: "linear",
+    //animationTarget: "plate",
+    valueBox: false,
+    title: "Radon",
+    animateOnInit: true,
+    animatedValue: true,
+    strokeTicks: false,
+  }).draw();
+
+  const radiationElement = document.getElementById("radiation");
+
+  const radiationGauge = new RadialGauge({
+      renderTo: radiationElement,
+      width: 600,
+      height: 600,
+      units: "CPM",
+      minValue: 0,
+      maxValue: 100,
+      majorTicks: [0,10,20,30,40,50,60,70,80,90,100],
+      highlights: [
+          { from: 0, to: 90, color: "rgba(0,255,0,1)" },
+          { from: 90, to: 100, color: "rgba(241,241,0,1)" }
+      ],
+      startAngle: 30,
+      ticksAngle: 300,
+      minorTicks: 25,
+      colorPlate: "#fff",
+      borderShadowWidth: 0,
+      borders: false,
+      needleType: "arrow",
+      needleWidth: 2,
+      needleCircleSize: 7,
+      needleCircleOuter: true,
+      needleCircleInner: false,
+      animationDuration: 1500,
+      animationRule: "linear",
+      //animationTarget: "plate",
+      valueBox: false,
+      title: "Radiation",
+      animateOnInit: true,
+      animatedValue: true,
+      strokeTicks: false,
+  }).draw();
+
+  function updateGaugeFromUrl() {
+    fetch(queryUrl)
+      .then(response => response.json())
+        .then(data => {
+          radonGauge.value = data.PCI;
+          radiationGauge.value = data.CPM;
+        })
+        .catch(error => console.error('Error fetching gauge data:', error));
+  }
+
+  updateGaugeFromUrl(queryUrl);
+
+  setInterval(() => updateGaugeFromUrl(), 5000);
+</script>
+</body>
+</html>
