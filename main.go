@@ -13,8 +13,11 @@ import (
 )
 
 func main() {
+	if err := handlers.Init(); err != nil {
+		log.Fatalf("Error initializing: %v", err)
+	}
 	if err := handlers.Start(); err != nil {
-		log.Fatalf("Error initializing database: %v", err)
+		log.Fatalf("Error starting: %v", err)
 	}
 	defer handlers.Stop()
 
@@ -22,6 +25,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/log", handlers.RadonProHandler)
+	mux.HandleFunc("/gaugeData", handlers.RadonProGaugeHandler)
+	mux.Handle("/html/", http.StripPrefix("/html/", http.FileServer(http.Dir("html"))))
 
 	wrappedMux := middleware.LoggingMiddleware(mux)
 

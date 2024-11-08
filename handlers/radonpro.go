@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
-type Record struct {
+type RadonRecord struct {
 	AID   string
 	GID   string
 	ACPM  string
@@ -22,25 +23,18 @@ type RadonProResponse struct {
 	Message string `json:"message"`
 }
 
+func RadonProGaugeHandler(w http.ResponseWriter, r *http.Request) {
+	rec, err := queryData(r.Context())
+	_ = err
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(rec)
+}
+
 // RadonProHandler is a simple handler that returns a JSON response
 func RadonProHandler(w http.ResponseWriter, r *http.Request) {
 	// "GET /log?AID=&GID=&CPM=10&ACPM=11.81&uSV=0.07&pci=0.45&model=RadonPro HTTP/1.1" 404 455 "-" "-"
-	aid := r.URL.Query().Get("AID")
-	println("AID: ", aid)
-	gid := r.URL.Query().Get("GID")
-	println("GID: ", gid)
-	acpm := r.URL.Query().Get("ACPM")
-	println("ACPM: ", acpm)
-	usv := r.URL.Query().Get("uSV")
-	println("uSV: ", usv)
-	model := r.URL.Query().Get("model")
-	println("Model: ", model)
-	pci := r.URL.Query().Get("pci")
-	println("PCI: ", pci)
-	cpm := r.URL.Query().Get("CPM")
-	println("CPM: ", cpm)
-
-	record := Record{
+	record := RadonRecord{
 		AID:   r.URL.Query().Get("AID"),
 		GID:   r.URL.Query().Get("GID"),
 		ACPM:  r.URL.Query().Get("ACPM"),
@@ -59,32 +53,55 @@ func RadonProHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintln(w, "Record inserted successfully")
 
-	// insert data into postgres db using pgx driver
-	// db := db.GetDB()
-	// _, err := db.Exec("INSERT INTO radonpro (aid, gid, acpm, usv, model, pci, cpm) VALUES ($1, $2, $3, $4, $5, $6, $7)", aid, gid, acpm, usv, model, pci, cpm)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-
 	response := RadonProResponse{Message: "Ok"}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+
 }
 
-func insertRecord(ctx context.Context, record Record) error {
+func insertRecord(ctx context.Context, record RadonRecord) error {
 	query := `
-        INSERT INTO records (aid, gid, acpm, usv, model, pci, cpm)
+        INSERT INTO RadonRecord (aid, gid, acpm, usv, model, pci, cpm)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
     `
 	_, err := dbPool.Exec(ctx, query, record.AID, record.GID, record.ACPM, record.USV, record.Model, record.PCI, record.CPM)
 	return err
 }
 
+func queryData(ctx context.Context) (RadonRecord, error) {
+	rec := RadonRecord{}
+	// Sample query (replace with your actual query)
+	rows, err := dbPool.Query(ctx, "SELECT aid, gid, acpm, usv, model, pci, cpm FROM radonrecord order by id desc limit 1")
+	if err != nil {
+		return rec, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	// Iterate through the result set
+	for rows.Next() {
+		var id int
+		var name string
+		var createdAt time.Time
+
+		// Scan each row into variables
+		if err := rows.Scan(&rec.AID, &rec.GID, &rec.ACPM, &rec.USV, &rec.Model, &rec.PCI, &rec.CPM); err != nil {
+			return rec, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		fmt.Printf("ID: %d, Name: %s, Created At: %s\n", id, name, createdAt)
+	}
+
+	// Check if any error occurred during iteration
+	if rows.Err() != nil {
+		return rec, fmt.Errorf("row iteration error: %w", rows.Err())
+	}
+
+	return rec, nil
+}
+
 /*
-CREATE TABLE records (
+CREATE TABLE RadonRecord (
     id SERIAL PRIMARY KEY,  -- Optional: Unique identifier for each record
     aid VARCHAR(255) NOT NULL,
     gid VARCHAR(255) NOT NULL,
